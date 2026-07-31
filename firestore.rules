@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function ehAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.papel == 'admin';
+    }
+
+    match /usuarios/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /vagas/{vagaId} {
+      allow read, write: if ehAdmin();
+      match /perguntas/{perguntaId} { allow read, write: if ehAdmin(); }
+    }
+
+    match /blocosDisc/{blocoId} { allow read, write: if ehAdmin(); }
+    match /inscricoes/{inscricaoId} { allow read, write: if ehAdmin(); }
+    match /configuracoes/{doc} { allow read, write: if ehAdmin(); }
+  }
+}
