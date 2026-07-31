@@ -204,4 +204,3 @@ O último item importa para a LGPD. Enquanto ele não existir, apague manualment
 **A vaga não aparece na home** → confira se o status está `aberta` e se a data de encerramento não passou
 
 **Erro de índice no Firestore** → o console mostra um link "criar índice". Clique nele, espere 1 minuto e recarregue
-a
