@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, doc, getDoc, getDocs, limit, query } from 'firebase/firestore';
+import { collection, doc, getDocFromServer, getDocsFromServer, limit, query } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 // Pagina temporaria de diagnostico. Acesse em /admin/diagnostico
@@ -55,7 +55,7 @@ export default function Diagnostico() {
 
       // 4. documento em usuarios
       try {
-        const perfil = await getDoc(doc(db, 'usuarios', usuario.uid));
+        const perfil = await getDocFromServer(doc(db, 'usuarios', usuario.uid));
         if (!perfil.exists()) {
           registrar('4. Documento em usuarios', false,
             `Nao existe documento com o ID ${usuario.uid} na colecao usuarios.`);
@@ -70,8 +70,8 @@ export default function Diagnostico() {
 
       // 6. leitura de vagas
       try {
-        const snap = await getDocs(query(collection(db, 'vagas'), limit(1)));
-        registrar('6. Leitura da colecao vagas', true, `${snap.size} documento(s) encontrado(s)`);
+        const snap = await getDocsFromServer(query(collection(db, 'vagas'), limit(1)));
+        registrar('6. Leitura da colecao vagas (direto do servidor)', true, `${snap.size} documento(s)`);
       } catch (e) {
         registrar('6. Leitura da colecao vagas', false, `${e.code || ''} ${e.message}`);
       }
@@ -79,9 +79,17 @@ export default function Diagnostico() {
       // 7. rota de servidor
       try {
         const r = await fetch('/api/vagas');
-        const d = await r.json();
-        registrar('7. Rota /api/vagas (Firebase Admin)', r.ok,
-          r.ok ? `${(d.vagas || []).length} vaga(s) aberta(s)` : `HTTP ${r.status}`);
+        const bruto = await r.text();
+        let detalhe;
+        try {
+          const d = JSON.parse(bruto);
+          detalhe = r.ok
+            ? `${(d.vagas || []).length} vaga(s) aberta(s)`
+            : `${d.codigo || ''} ${d.erro || ''}`.trim();
+        } catch {
+          detalhe = `HTTP ${r.status} - resposta nao era JSON: ${bruto.slice(0, 200)}`;
+        }
+        registrar('7. Rota /api/vagas (Firebase Admin)', r.ok, detalhe);
       } catch (e) {
         registrar('7. Rota /api/vagas (Firebase Admin)', false, e.message);
       }
